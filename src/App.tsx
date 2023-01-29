@@ -15,6 +15,8 @@ const StaticInfos = () => {
     );
 };
 
+const SAVE_KEY = "my_todo";
+
 type NoteType = { title: string; memo: string };
 const Notes = () => {
     const [notes, setNotes] = useState<NoteType[]>([]);
@@ -37,10 +39,28 @@ const Notes = () => {
         }
     }, [inputTitle, inputMemo]);
 
+    useEffect(() => {
+        readData();
+    }, []);
+
+    const readData = () => {
+        const data = localStorage.getItem(SAVE_KEY);
+        if (data) {
+            const parsed = JSON.parse(data);
+            setNotes([...parsed]);
+        }
+    };
+    const saveData = () => {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(notes));
+    };
+
     const displayLog = () => {
-        console.log("-----");
+        console.log("-1----");
         notes.map((note) => console.log(note));
-        console.log("-----");
+        console.log("-2----");
+        readData();
+        console.log("-3----");
+        saveData();
     };
 
     const clearInput = () => {
@@ -74,6 +94,7 @@ const Notes = () => {
         }
 
         setNotes(newState);
+        saveData();
     };
 
     const handleDelete = (
@@ -83,6 +104,7 @@ const Notes = () => {
     ) => {
         const newState = [...notes].filter((note, i) => i !== index);
         setNotes(newState);
+        saveData();
     };
     const handleToggleEdit = (
         e: React.MouseEvent<HTMLButtonElement>,
@@ -98,6 +120,7 @@ const Notes = () => {
         // toggle disabled
         newTitleElement.toggleAttribute("disabled");
         newMemoElement.toggleAttribute("disabled");
+
         // console.log(index);
         // delete last note
         // console.log(e.target);
