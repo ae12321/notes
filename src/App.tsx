@@ -1,7 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import logo from "./logo.svg";
+import React, { RefObject, useEffect, useRef, useState } from "react";
 import "./App.css";
-// import * as fs from "fs";
 
 const StaticInfos = () => {
     return (
@@ -21,7 +19,11 @@ type NoteType = { title: string; memo: string };
 const Notes = () => {
     const [notes, setNotes] = useState<NoteType[]>([]);
     const ref = useRef<HTMLDivElement>(null);
-    const addedRef = useRef<HTMLDivElement>(null);
+
+    const addedRef = useRef<RefObject<HTMLDivElement>[]>([]);
+    notes.forEach((_, i) => {
+        addedRef.current[i] = React.createRef<HTMLDivElement>();
+    });
     const [disableAdd, setDisabledAdd] = useState(true);
 
     const [inputTitle, setInputTitle] = useState("");
@@ -35,11 +37,16 @@ const Notes = () => {
         }
     }, [inputTitle, inputMemo]);
 
+    const displayLog = () => {
+        console.log("-----");
+        notes.map((note) => console.log(note));
+        console.log("-----");
+    };
+
     const clearInput = () => {
         setInputTitle("");
         setInputMemo("");
     };
-
     const handleAdd = () => {
         const newState = [...notes];
         newState.push({ title: inputTitle, memo: inputMemo });
@@ -47,52 +54,26 @@ const Notes = () => {
         setNotes(newState);
 
         clearInput();
+    };
 
-        console.log({ title: inputTitle, memo: inputMemo });
+    const handleChangeNote = (e: React.ChangeEvent<HTMLElement>, i: number) => {
+        const newState = [...notes];
+        // console.log(e.target.nodeName); // TEXTAREA, INPUT
 
-        // // === how to ref ===
-        // console.log(ref.current); // 1
-        // console.log(ref.current?.childNodes); // NodeList(5) [text,input,br,text,input]
-        // console.log(ref.current?.childNodes[3]); // memo:
-        // console.log(ref.current?.childNodes[2]); // <br>
+        let name;
+        let value;
+        if (e.target.nodeName === "INPUT") {
+            newState.find((_, index) => index === i)!.title = (
+                e.target as HTMLTextAreaElement
+            ).value;
+        } else {
+            // e.target.nodeName === "TEXTAREA"
+            newState.find((_, index) => index === i)!.memo = (
+                e.target as HTMLInputElement
+            ).value;
+        }
 
-        // console.log(ref.current?.children); // HTMLCollection(3) []input,br,input]   memo: input  title: input
-        // const titleElement: HTMLInputElement = ref.current!.children!.namedItem(
-        //     "title"
-        // ) as HTMLInputElement;
-        // console.log(titleElement.value); // value of input name="title"
-
-        // if (
-        //     ref.current &&
-        //     ref.current.children &&
-        //     ref.current.children.namedItem("title") &&
-        //     ref.current.children.namedItem("memo")
-        // ) {
-        //     const newTitleElement = ref.current!.children!.namedItem(
-        //         "title"
-        //     ) as HTMLInputElement;
-        //     const newMemoElement = ref.current!.children!.namedItem(
-        //         "memo"
-        //     ) as HTMLTextAreaElement;
-
-        //     // if (newTitleElement.value !== "" && newMemoElement.value !== "") {
-        //     //     setDisabledAdd(false);
-        //     // } else {
-        //     //     setDisabledAdd(true);
-        //     // }
-        //     const newState = [...notes];
-        //     newState.push({
-        //         title: newTitleElement.value,
-        //         memo: newMemoElement.value,
-        //     });
-
-        //     setNotes(newState);
-
-        //     // clear
-        //     newTitleElement.value = "";
-        //     newMemoElement.value = "";
-        //     setDisabledAdd(true);
-        // }
+        setNotes(newState);
     };
 
     const handleDelete = (
@@ -100,17 +81,7 @@ const Notes = () => {
         addedRef: React.RefObject<HTMLDivElement>,
         index: number
     ) => {
-        // console.log(index);
-
-        // delete last note
-        // console.log(e.target);
-        // console.log(addedRef.current);
-        // addedRef.current?.remove();
-        // const newState = [...notes].filter(
-        //     (note, i) => i !== notes.length - 1
-        // );
         const newState = [...notes].filter((note, i) => i !== index);
-
         setNotes(newState);
     };
     const handleToggleEdit = (
@@ -146,6 +117,7 @@ const Notes = () => {
 
     return (
         <>
+            <button onClick={displayLog}>log</button>
             <h1>Note</h1>
             <div ref={ref}>
                 title:
@@ -174,7 +146,7 @@ const Notes = () => {
             <hr />
             {notes.map((note, index) => {
                 return (
-                    <div key={index} ref={addedRef}>
+                    <div key={index} ref={addedRef.current[index]}>
                         title:
                         <br />
                         <input
@@ -182,6 +154,7 @@ const Notes = () => {
                             name="title"
                             value={note.title}
                             disabled
+                            onChange={(e) => handleChangeNote(e, index)}
                         />
                         <br />
                         memo:
@@ -193,17 +166,24 @@ const Notes = () => {
                             rows={10}
                             value={note.memo}
                             disabled
+                            onChange={(e) => handleChangeNote(e, index)}
                         ></textarea>
                         <br />
                         <button
                             onClick={(e) =>
-                                handleToggleEdit(e, addedRef, index)
+                                handleToggleEdit(
+                                    e,
+                                    addedRef.current[index],
+                                    index
+                                )
                             }
                         >
                             Edit
                         </button>
                         <button
-                            onClick={(e) => handleDelete(e, addedRef, index)}
+                            onClick={(e) =>
+                                handleDelete(e, addedRef.current[index], index)
+                            }
                         >
                             Delete
                         </button>
